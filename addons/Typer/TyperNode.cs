@@ -32,21 +32,23 @@ public partial class TyperNode : TextureRect
 	}
 
 	StateEnum State { get; set; }
-	AnimationPlayer AnimationPlayer { get; set; }
-	Timer TypeTimer { get; set; }
-	Timer CaretBlinkTimer { get; set; }
-	Timer StartDelayTimer { get; set; }
+	
+	AnimationPlayer AnimationPlayerNode { get; set; }
+	Timer TypeTimerNode { get; set; }
+	Timer CaretBlinkTimerNode { get; set; }
+	Timer StartDelayTimerNode { get; set; }
 	AudioStreamPlayer TypingSoundNode { get; set; }
-
-	float FadeoutSpeedScale { get; set; }
 
 	public override void _Ready()
 	{
-		TypeTimer = GetNode<Timer>("TypeTimer");
-		CaretBlinkTimer = GetNode<Timer>("CaretBlinkTimer");
-		StartDelayTimer = GetNode<Timer>("StartDelayTimer");
-		AnimationPlayer = GetNode<AnimationPlayer>("AnimationPlayer");
+		TypeTimerNode = GetNode<Timer>("TypeTimer");
+		TypeTimerNode.WaitTime = Resource.TypingSpeed;
+		CaretBlinkTimerNode = GetNode<Timer>("CaretBlinkTimer");
+		StartDelayTimerNode = GetNode<Timer>("StartDelayTimer");
+		StartDelayTimerNode.WaitTime = Resource.StartDelay;
+		AnimationPlayerNode = GetNode<AnimationPlayer>("AnimationPlayer");
 		TypingSoundNode = GetNode<AudioStreamPlayer>("TypingSound");
+		(TypingSoundNode.Stream as AudioStreamRandomizer).AddStream(-1, Resource.TypingSound);
 	}
 
 	public void Reset()
@@ -56,7 +58,7 @@ public partial class TyperNode : TextureRect
 		Hide();
 	}
 
-	public void Init(string text, float startDelay = 0.001f, float fadeoutSpeedScale = 1.0f)
+	public void Init(string text, float startDelay = 0.001f)
 	{
 		Pauses = new();
 		State = StateEnum.Typing;
@@ -70,7 +72,7 @@ public partial class TyperNode : TextureRect
 
 		LinesWidth = new float[Lines.Length];
 
-		AnimationPlayer.Play("RESET");
+		AnimationPlayerNode.Play("RESET");
 		// TypeTimer.Stop();
 		// CaretBlinkTimer.Stop();
 		// StartDelayTimer.Stop();
@@ -90,12 +92,11 @@ public partial class TyperNode : TextureRect
 				Pauses.Add(i, pauses);
 		}
 
-		FadeoutSpeedScale = fadeoutSpeedScale;
-		StartDelayTimer.WaitTime = startDelay;
+		StartDelayTimerNode.WaitTime = startDelay;
 		Show();
 	}
 
-	public void Start() => StartDelayTimer.Start();
+	public void Start() => StartDelayTimerNode.Start();
 
 	static List<(int Position, int Value)> ExtractPauses(ref string input)
 	{
@@ -161,7 +162,7 @@ public partial class TyperNode : TextureRect
 			CurrentLastCharIdx = 0;
 		}
 
-		TypeTimer.Start();
+		TypeTimerNode.Start();
 	}
 
 	public override void _Draw()
@@ -212,7 +213,7 @@ public partial class TyperNode : TextureRect
 		{
 			CurrentFinalCaretBlinkTime++;
 			QueueRedraw();
-			CaretBlinkTimer.Start();
+			CaretBlinkTimerNode.Start();
 		}
 		else
 		{
@@ -223,22 +224,22 @@ public partial class TyperNode : TextureRect
 		}
 	}
 
-	public void _OnStartDelayTimerTimeout() => TypeTimer.Start();
+	public void _OnStartDelayTimerTimeout() => TypeTimerNode.Start();
 
-	public void SwitchState(StateEnum newState)
+	public async void SwitchState(StateEnum newState)
 	{
 		switch (newState)
 		{
 			case StateEnum.Typing:
-				TypeTimer.Start();
+				TypeTimerNode.Start();
 				CurrentFinalCaretBlinkTime = 0;
 				break;
 			case StateEnum.Waiting:
-				CaretBlinkTimer.Start();
+				CaretBlinkTimerNode.Start();
 				break;
 			case StateEnum.Finished:
-				AnimationPlayer.SpeedScale = FadeoutSpeedScale;
-				AnimationPlayer.Play("Fadeout");
+				AnimationPlayerNode.SpeedScale /= Resource.FadeoutTime;
+				AnimationPlayerNode.Play("Fadeout");
 				await ToSignal(AnimationPlayerNode, "animation_finished");
 				Reset();
 				break;
