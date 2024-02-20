@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3 uid="uid://b7hgrc37eo5c7"]
+
+[ext_resource type="Script" path="res://Main.cs" id="1_ide47"]
+[ext_resource type="PackedScene" uid="uid://bxe6i3ypewns8" path="res://addons/Typer/TyperNode.tscn" id="2_qwbwl"]
+
+[node name="Main" type="Node"]
+script = ExtResource("1_ide47")
+
+[node name="Typer" parent="." instance=ExtResource("2_qwbwl")]
