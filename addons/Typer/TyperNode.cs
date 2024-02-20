@@ -239,6 +239,7 @@ public partial class TyperNode : TextureRect
 			case StateEnum.Finished:
 				AnimationPlayer.SpeedScale = FadeoutSpeedScale;
 				AnimationPlayer.Play("Fadeout");
+				await ToSignal(AnimationPlayerNode, "animation_finished");
 				Reset();
 				break;
 		}
