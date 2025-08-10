@@ -3,9 +3,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 public partial class TyperNode : TextureRect
 {
+	[Signal] public delegate void FinishedEventHandler();
+
 	[Export] public TyperResource Resource { get; set; }
 
 	string Text { get; set; }
@@ -25,56 +28,43 @@ public partial class TyperNode : TextureRect
 
 	public enum StateEnum
 	{
+		Started,
 		Typing,
-		Waiting,
+		Pause,
 		Finished
 	}
 
-	StateEnum State { get; set; }
-	
-	AnimationPlayer AnimationPlayerNode { get; set; }
-	Timer TypeTimerNode { get; set; }
-	Timer CaretBlinkTimerNode { get; set; }
-	Timer StartDelayTimerNode { get; set; }
-	AudioStreamPlayer TypingSoundNode { get; set; }
+	StateEnum State { get; set; } = StateEnum.Started;
 
-	public override void _Ready()
-	{
-		TypeTimerNode = GetNode<Timer>("TypeTimer");
-		TypeTimerNode.WaitTime = Resource.TypingSpeed;
-		CaretBlinkTimerNode = GetNode<Timer>("CaretBlinkTimer");
-		StartDelayTimerNode = GetNode<Timer>("StartDelayTimer");
-		StartDelayTimerNode.WaitTime = Resource.StartDelay;
-		AnimationPlayerNode = GetNode<AnimationPlayer>("AnimationPlayer");
-		TypingSoundNode = GetNode<AudioStreamPlayer>("TypingSound");
-		(TypingSoundNode.Stream as AudioStreamRandomizer).AddStream(-1, Resource.TypingSound);
-	}
+	AnimationPlayer AnimationPlayerNode => GetNode<AnimationPlayer>("AnimationPlayer");
+	AudioStreamPlayer TypingSoundNode => GetNode<AudioStreamPlayer>("TypingSound");
 
-	public void Reset()
+    public override void _Ready() => ((AudioStreamRandomizer)TypingSoundNode.Stream).AddStream(-1, Resource.TypingSound);
+
+    public void Reset()
 	{
 		Texture = null;
 		QueueRedraw();
 		Hide();
 	}
 
-	public void Init(string text, float startDelay = 0.001f)
+	public void Init(string text = "")
 	{
-		Pauses = new();
-		State = StateEnum.Typing;
+		Pauses = [];
 		CurrentFinalCaretBlinkTime = 0;
 		CurrentFinalCaretBlinkTimes = 0;
 		CurrentLine = "";
 		CurrentLastCharIdx = 0;
 		CurrentLastLineIdx = 0;
 
-		Lines = text.Split(new[] { System.Environment.NewLine }, StringSplitOptions.None);
+		if (text == string.Empty)
+			text = Resource.Text;
+
+		Lines = text.Split([System.Environment.NewLine], StringSplitOptions.None);
 
 		LinesWidth = new float[Lines.Length];
 
 		AnimationPlayerNode.Play("RESET");
-		// TypeTimer.Stop();
-		// CaretBlinkTimer.Stop();
-		// StartDelayTimer.Stop();
 
 		for (int i = 0; i < Lines.Length; i++)
 		{
@@ -91,15 +81,65 @@ public partial class TyperNode : TextureRect
 				Pauses.Add(i, pauses);
 		}
 
-		StartDelayTimerNode.WaitTime = startDelay;
 		Show();
 	}
 
-	public void Start() => StartDelayTimerNode.Start();
+	public async void Start()
+	{
+		await Task.Delay((int)(Resource.StartDelay * 1000));
+		SwitchState(StateEnum.Typing);
+		await TypeLoop();
+	}
+
+	private async Task TypeLoop()
+	{
+		while (true)
+		{
+			if (CurrentLastLineIdx >= Lines.Length)
+			{
+				CurrentFinalCaretBlinkTimes = Resource.FinalCaretBlinkTimes;
+				SwitchState(StateEnum.Pause);
+				break;
+			}
+
+			if (State != StateEnum.Typing)
+				break;
+
+			CurrentLine = Lines[CurrentLastLineIdx];
+
+			if (CurrentLastCharIdx < CurrentLine.Length)
+			{
+				if (Pauses.TryGetValue(CurrentLastLineIdx, out var pausePositions))
+				{
+					foreach (var (position, value) in pausePositions.ToList())
+					{
+						if (CurrentLastCharIdx == position)
+						{
+							CurrentFinalCaretBlinkTimes = value;
+							SwitchState(StateEnum.Pause);
+							pausePositions.Remove((position, value));
+							return;
+						}
+					}
+				}
+
+				CurrentLastCharIdx++;
+				QueueRedraw();
+				TypingSoundNode.Play();
+			}
+			else
+			{
+				CurrentLastLineIdx++;
+				CurrentLastCharIdx = 0;
+			}
+
+			await Task.Delay((int)(Resource.TypingSpeed * 1000));
+		}
+	}
 
 	static List<(int Position, int Value)> ExtractPauses(ref string input)
 	{
-		List<(int Position, int Value)> tags = new();
+		List<(int Position, int Value)> tags = [];
 
 		// Match tags using regular expression
 		string pattern = @"(?<!\\)\[([^\]]+)\]";
@@ -118,131 +158,89 @@ public partial class TyperNode : TextureRect
 
 		} while (true);
 
-		return tags.OrderBy(tag => tag.Value).ToList();
-	}
-
-	public void _OnTypeTimerTimeout()
-	{
-		if (CurrentLastLineIdx >= Lines.Length)
-		{
-			CurrentFinalCaretBlinkTimes = Resource.FinalCaretBlinkTimes;
-			SwitchState(StateEnum.Waiting);
-			return;
-		}
-
-		if (State != StateEnum.Typing)
-			return;
-
-		CurrentLine = Lines[CurrentLastLineIdx];
-
-		if (CurrentLastCharIdx < CurrentLine.Length)
-		{
-			if (Pauses.TryGetValue(CurrentLastLineIdx, out var pausePositions))
-			{
-				foreach (var (position, value) in pausePositions.ToList())
-				{
-					if (CurrentLastCharIdx == position)
-					{
-						CurrentFinalCaretBlinkTimes = value;
-						SwitchState(StateEnum.Waiting);
-						pausePositions.Remove((position, value));
-						return;
-					}
-				}
-			}
-
-			CurrentLastCharIdx++;
-			QueueRedraw();
-			TypingSoundNode.Play();
-		}
-		else
-		{
-			CurrentLastLineIdx++;
-			CurrentLastCharIdx = 0;
-		}
-
-		TypeTimerNode.Start();
+		return [.. tags.OrderBy(tag => tag.Value)];
 	}
 
 	public override void _Draw()
 	{
-		base._Draw();
+		if (State == StateEnum.Started)
+		{
+			base._Draw();
+			return;
+		}
 
 		if (CurrentLine != null)
-		{
-			var pos = Vector2.Zero;
-
-			var printedLine = "";
-
-			for (int lineIdx = 0; lineIdx <= CurrentLastLineIdx; lineIdx++)
 			{
-				if (lineIdx < Lines.Length)
+				var pos = Vector2.Zero;
+
+				var printedLine = "";
+
+				for (int lineIdx = 0; lineIdx <= CurrentLastLineIdx; lineIdx++)
 				{
-					var currentLine = Lines[lineIdx];
+					if (lineIdx < Lines.Length)
+					{
+						var currentLine = Lines[lineIdx];
 
-					if (lineIdx < CurrentLastLineIdx)
-						printedLine = currentLine;
-					else
-						printedLine = currentLine[..CurrentLastCharIdx];
+						if (lineIdx < CurrentLastLineIdx)
+							printedLine = currentLine;
+						else
+							printedLine = currentLine[..CurrentLastCharIdx];
 
-					printedLine = printedLine.ReplaceN(@"\\", "");
+						printedLine = printedLine.ReplaceN(@"\\", "");
 
-					pos = new Vector2(0, Resource.FontSize + Resource.LineSpacing * lineIdx);
+						pos = new Vector2(0, Resource.FontSize + Resource.LineSpacing * lineIdx);
 
-					if (Resource.CenterHorizontally)
-						pos.X += Size.X / 2 - LinesWidth[lineIdx] / 2;
+						if (Resource.CenterHorizontally)
+							pos.X += Size.X / 2 - LinesWidth[lineIdx] / 2;
 
-					if (Resource.CenterVertically)
-						pos.Y += Size.Y / 2 - Height / 2;
+						if (Resource.CenterVertically)
+							pos.Y += Size.Y / 2 - Height / 2;
 
-					DrawString(Resource.Font, pos, printedLine, fontSize: Resource.FontSize);
+						DrawString(Resource.Font, pos, printedLine, fontSize: Resource.FontSize);
+					}
 				}
+
+				// Draw caret
+				if (CurrentFinalCaretBlinkTime % 2 == 0 && Resource.Caret != "")
+					DrawChar(Resource.Font, pos + new Vector2(Resource.Font.GetStringSize(printedLine, fontSize: Resource.FontSize).X, 0), Resource.Caret, fontSize: Resource.FontSize);
 			}
-
-			// Draw caret
-			if (CurrentFinalCaretBlinkTime % 2 == 0 && Resource.Caret != "")
-				DrawChar(Resource.Font, pos + new Vector2(Resource.Font.GetStringSize(printedLine, fontSize: Resource.FontSize).X, 0), Resource.Caret, fontSize: Resource.FontSize);
-		}
 	}
-
-	public void _OnCaretBlinkTimerTimeout()
-	{
-		// Let the caret blink
-		if (CurrentFinalCaretBlinkTime < (CurrentFinalCaretBlinkTimes * 2) - 1)
-		{
-			CurrentFinalCaretBlinkTime++;
-			QueueRedraw();
-			CaretBlinkTimerNode.Start();
-		}
-		else
-		{
-			if (CurrentLastLineIdx == Lines.Length)
-				SwitchState(StateEnum.Finished);
-			else
-				SwitchState(StateEnum.Typing);
-		}
-	}
-
-	public void _OnStartDelayTimerTimeout() => TypeTimerNode.Start();
 
 	public async void SwitchState(StateEnum newState)
 	{
 		switch (newState)
 		{
 			case StateEnum.Typing:
-				TypeTimerNode.Start();
 				CurrentFinalCaretBlinkTime = 0;
+				await TypeLoop();
 				break;
-			case StateEnum.Waiting:
-				CaretBlinkTimerNode.Start();
+			case StateEnum.Pause:
+				while (CurrentFinalCaretBlinkTime < (CurrentFinalCaretBlinkTimes * 2) - 1)
+				{
+					CurrentFinalCaretBlinkTime++;
+					QueueRedraw();
+					await Task.Delay((int)(Resource.CaretBlinkTime * 1000));
+				}
+				if (CurrentLastLineIdx == Lines.Length)
+					SwitchState(StateEnum.Finished);
+				else
+					SwitchState(StateEnum.Typing);
 				break;
 			case StateEnum.Finished:
+				if (Resource.PreFadeoutTime > 0)
+					await Task.Delay((int)(Resource.PreFadeoutTime * 1000));
 				AnimationPlayerNode.SpeedScale /= Resource.FadeoutTime;
 				AnimationPlayerNode.Play("Fadeout");
 				await ToSignal(AnimationPlayerNode, "animation_finished");
 				Reset();
+				EmitSignal(SignalName.Finished);
 				break;
 		}
 		State = newState;
 	}
+
+    public void Stop()
+    {
+        State = StateEnum.Finished;
+    }
 }

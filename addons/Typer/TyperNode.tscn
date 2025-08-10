@@ -1,14 +1,10 @@
-[gd_scene load_steps=8 format=3 uid="uid://bxe6i3ypewns8"]
+[gd_scene load_steps=7 format=3 uid="uid://bxe6i3ypewns8"]
 
-[ext_resource type="Script" path="res://addons/Typer/TyperNode.cs" id="1_1ulmt"]
+[ext_resource type="Script" uid="uid://cnt1exm4qsnx6" path="res://addons/Typer/TyperNode.cs" id="1_1ulmt"]
 [ext_resource type="Resource" uid="uid://bwa2k6rmdtv28" path="res://addons/Typer/TyperResource.tres" id="2_6c54x"]
-[ext_resource type="AudioStream" uid="uid://che2h3r61xqci" path="res://addons/Typer/Sounds/Typing1.wav" id="2_6lf1u"]
 
 [sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_q2s2w"]
 random_volume_offset_db = 0.2
-streams_count = 1
-stream_0/stream = ExtResource("2_6lf1u")
-stream_0/weight = 1.0
 
 [sub_resource type="Animation" id="Animation_7gnxd"]
 resource_name = "Fadeout"
@@ -42,8 +38,8 @@ tracks/0/keys = {
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_ylitu"]
 _data = {
-"Fadeout": SubResource("Animation_7gnxd"),
-"RESET": SubResource("Animation_xg0a0")
+&"Fadeout": SubResource("Animation_7gnxd"),
+&"RESET": SubResource("Animation_xg0a0")
 }
 
 [node name="Typer" type="TextureRect"]
@@ -77,18 +73,14 @@ one_shot = true
 [node name="FadeoutTimer" type="Timer" parent="."]
 one_shot = true
 
-[node name="StartDelayTimer" type="Timer" parent="."]
-one_shot = true
-
 [node name="TypingSound" type="AudioStreamPlayer" parent="."]
 stream = SubResource("AudioStreamRandomizer_q2s2w")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {
-"": SubResource("AnimationLibrary_ylitu")
+&"": SubResource("AnimationLibrary_ylitu")
 }
 
 [connection signal="timeout" from="TypeTimer" to="." method="_OnTypeTimerTimeout"]
 [connection signal="timeout" from="CaretBlinkTimer" to="." method="_OnCaretBlinkTimerTimeout"]
 [connection signal="timeout" from="FadeoutTimer" to="." method="_OnFadeoutTimerTimeout"]
-[connection signal="timeout" from="StartDelayTimer" to="." method="_OnStartDelayTimerTimeout"]

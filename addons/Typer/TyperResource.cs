@@ -1,5 +1,6 @@
 using Godot;
 
+[GlobalClass]
 public partial class TyperResource : Resource
 {
     [ExportCategory("Font")]
@@ -25,7 +26,7 @@ public partial class TyperResource : Resource
     [Export] public float PreFadeoutTime { get; set; } = 1.0f;
     [Export] public float FadeoutTime { get; set; } = 1.0f;
 
+    [ExportCategory("Text")]
+    [Export(PropertyHint.MultilineText)] public string Text { get; set; } = "";
 
-    [Export]
-    public float FadeoutTime { get; set; } = 1.0f;
 }
