@@ -6,8 +6,7 @@ using System.Text.RegularExpressions;
 
 public partial class TyperNode : TextureRect
 {
-	[Export]
-	TyperResource Resource { get; set; }
+	[Export] public TyperResource Resource { get; set; }
 
 	string Text { get; set; }
 
