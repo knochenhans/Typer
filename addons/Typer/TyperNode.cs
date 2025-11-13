@@ -33,14 +33,14 @@ public partial class TyperNode : TextureRect
 		Finished
 	}
 
-	StateEnum State = StateEnum.Started;
+	SimpleStateManager<StateEnum> StateManager = new(StateEnum.Started);
 
 	AnimationPlayer AnimationPlayerNode => GetNode<AnimationPlayer>("AnimationPlayer");
 	AudioStreamPlayer TypingSoundNode => GetNode<AudioStreamPlayer>("TypingSound");
 
-    public override void _Ready() => ((AudioStreamRandomizer)TypingSoundNode.Stream).AddStream(-1, Resource.TypingSound);
+	public override void _Ready() => ((AudioStreamRandomizer)TypingSoundNode.Stream).AddStream(-1, Resource.TypingSound);
 
-    public void Reset()
+	public void Reset()
 	{
 		Texture = null;
 		QueueRedraw();
@@ -101,7 +101,7 @@ public partial class TyperNode : TextureRect
 				break;
 			}
 
-			if (State != StateEnum.Typing)
+			if (StateManager.CurrentState != StateEnum.Typing)
 				break;
 
 			CurrentLine = Lines[CurrentLastLineIdx];
@@ -162,51 +162,53 @@ public partial class TyperNode : TextureRect
 
 	public override void _Draw()
 	{
-		if (State == StateEnum.Started)
+		if (StateManager.CurrentState == StateEnum.Started)
 		{
 			base._Draw();
 			return;
 		}
 
 		if (CurrentLine != null)
+		{
+			var pos = Vector2.Zero;
+
+			var printedLine = "";
+
+			for (int lineIdx = 0; lineIdx <= CurrentLastLineIdx; lineIdx++)
 			{
-				var pos = Vector2.Zero;
-
-				var printedLine = "";
-
-				for (int lineIdx = 0; lineIdx <= CurrentLastLineIdx; lineIdx++)
+				if (lineIdx < Lines.Length)
 				{
-					if (lineIdx < Lines.Length)
-					{
-						var currentLine = Lines[lineIdx];
+					var currentLine = Lines[lineIdx];
 
-						if (lineIdx < CurrentLastLineIdx)
-							printedLine = currentLine;
-						else
-							printedLine = currentLine[..CurrentLastCharIdx];
+					if (lineIdx < CurrentLastLineIdx)
+						printedLine = currentLine;
+					else
+						printedLine = currentLine[..CurrentLastCharIdx];
 
-						printedLine = printedLine.ReplaceN(@"\\", "");
+					printedLine = printedLine.ReplaceN(@"\\", "");
 
-						pos = new Vector2(0, Resource.FontSize + Resource.LineSpacing * lineIdx);
+					pos = new Vector2(0, Resource.FontSize + Resource.LineSpacing * lineIdx);
 
-						if (Resource.CenterHorizontally)
-							pos.X += Size.X / 2 - LinesWidth[lineIdx] / 2;
+					if (Resource.CenterHorizontally)
+						pos.X += Size.X / 2 - LinesWidth[lineIdx] / 2;
 
-						if (Resource.CenterVertically)
-							pos.Y += Size.Y / 2 - Height / 2;
+					if (Resource.CenterVertically)
+						pos.Y += Size.Y / 2 - Height / 2;
 
-						DrawString(Resource.Font, pos, printedLine, fontSize: Resource.FontSize);
-					}
+					DrawString(Resource.Font, pos, printedLine, fontSize: Resource.FontSize);
 				}
-
-				// Draw caret
-				if (CurrentFinalCaretBlinkTime % 2 == 0 && Resource.Caret != "")
-					DrawChar(Resource.Font, pos + new Vector2(Resource.Font.GetStringSize(printedLine, fontSize: Resource.FontSize).X, 0), Resource.Caret, fontSize: Resource.FontSize);
 			}
+
+			// Draw caret
+			if (CurrentFinalCaretBlinkTime % 2 == 0 && Resource.Caret != "")
+				DrawChar(Resource.Font, pos + new Vector2(Resource.Font.GetStringSize(printedLine, fontSize: Resource.FontSize).X, 0), Resource.Caret, fontSize: Resource.FontSize);
+		}
 	}
 
 	public async void SwitchState(StateEnum newState)
 	{
+		StateManager.CurrentState = newState;
+
 		switch (newState)
 		{
 			case StateEnum.Typing:
@@ -235,8 +237,7 @@ public partial class TyperNode : TextureRect
 				EmitSignal(SignalName.Finished);
 				break;
 		}
-		State = newState;
 	}
 
-    public void Stop() => State = StateEnum.Finished;
+	public void Stop() => StateManager.CurrentState = StateEnum.Finished;
 }
