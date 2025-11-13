@@ -228,9 +228,9 @@ public partial class TyperNode : TextureRect
 			case StateEnum.Finished:
 				if (Resource.PreFadeoutTime > 0)
 					await Task.Delay((int)(Resource.PreFadeoutTime * 1000));
-				AnimationPlayerNode.SpeedScale /= Resource.FadeoutTime;
-				AnimationPlayerNode.Play("Fadeout");
-				await ToSignal(AnimationPlayerNode, "animation_finished");
+
+				await FadeHelper.TweenFadeModulate(this, FadeHelper.FadeDirectionEnum.Out, Resource.FadeoutTime, targetOpacity: 0f);
+
 				Reset();
 				EmitSignal(SignalName.Finished);
 				break;
@@ -238,8 +238,5 @@ public partial class TyperNode : TextureRect
 		State = newState;
 	}
 
-    public void Stop()
-    {
-        State = StateEnum.Finished;
-    }
+    public void Stop() => State = StateEnum.Finished;
 }
