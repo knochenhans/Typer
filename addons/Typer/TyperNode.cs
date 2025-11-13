@@ -35,7 +35,6 @@ public partial class TyperNode : TextureRect
 
 	SimpleStateManager<StateEnum> StateManager = new(StateEnum.Started);
 
-	AnimationPlayer AnimationPlayerNode => GetNode<AnimationPlayer>("AnimationPlayer");
 	AudioStreamPlayer TypingSoundNode => GetNode<AudioStreamPlayer>("TypingSound");
 
 	public override void _Ready() => ((AudioStreamRandomizer)TypingSoundNode.Stream).AddStream(-1, Resource.TypingSound);
@@ -62,8 +61,6 @@ public partial class TyperNode : TextureRect
 		Lines = text.Split([System.Environment.NewLine], StringSplitOptions.None);
 
 		LinesWidth = new float[Lines.Length];
-
-		AnimationPlayerNode.Play("RESET");
 
 		for (int i = 0; i < Lines.Length; i++)
 		{
