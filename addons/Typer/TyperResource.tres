@@ -533,16 +533,5 @@ cache/0/25/0/kerning_overrides/25/0 = Vector2(0, 0)
 [resource]
 script = ExtResource("1_u1mnh")
 Font = SubResource("FontFile_g1aq4")
-FontSize = 16
-LineSpacing = 30
-CenterHorizontally = false
-CenterVertically = false
-Caret = ""
-CaretBlinkTime = 0.2
-FinalCaretBlinkTimes = 3
 TypingSound = ExtResource("1_10i84")
 TypingSpeed = 0.05
-StartDelay = 1.0
-PreFadeoutTime = 1.0
-FadeoutTime = 1.0
-Text = ""
