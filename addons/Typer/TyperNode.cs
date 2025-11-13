@@ -9,22 +9,21 @@ public partial class TyperNode : TextureRect
 {
 	[Signal] public delegate void FinishedEventHandler();
 
-	[Export] public TyperResource Resource { get; set; }
+	[Export] public TyperResource Resource;
 
-	string Text { get; set; }
+	string Text;
 
-	int CurrentFinalCaretBlinkTimes { get; set; }
-	int CurrentFinalCaretBlinkTime { get; set; }
+	int CurrentFinalCaretBlinkTimes;
+	int CurrentFinalCaretBlinkTime;
 
-	string[] Lines { get; set; }
-	string CurrentLine { get; set; }
-	int CurrentLastLineIdx { get; set; }
-	int CurrentLastCharIdx { get; set; }
+	string[] Lines;
+	string CurrentLine;
+	int CurrentLastLineIdx;
+	int CurrentLastCharIdx;
 
-	float[] LinesWidth { get; set; }
-	Dictionary<int, List<(int Position, int Value)>> Pauses { get; set; }
-
-	float Height { get; set; }
+	float[] LinesWidth;
+	Dictionary<int, List<(int Position, int Value)>> Pauses;
+	float Height;
 
 	public enum StateEnum
 	{
@@ -34,7 +33,7 @@ public partial class TyperNode : TextureRect
 		Finished
 	}
 
-	StateEnum State { get; set; } = StateEnum.Started;
+	StateEnum State = StateEnum.Started;
 
 	AnimationPlayer AnimationPlayerNode => GetNode<AnimationPlayer>("AnimationPlayer");
 	AudioStreamPlayer TypingSoundNode => GetNode<AudioStreamPlayer>("TypingSound");
