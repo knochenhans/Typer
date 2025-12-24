@@ -1,9 +1,4 @@
 using Godot;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 public partial class TyperNode : TextureRect
 {
@@ -69,13 +64,13 @@ public partial class TyperNode : TextureRect
 
                     printedLine = printedLine.ReplaceN(@"\\", "");
 
-                    pos = new Vector2(0, Resource.FontSize + Resource.LineSpacing * lineIdx);
+                    pos = new Vector2(0, Resource.FontSize + (Resource.LineSpacing * lineIdx));
 
                     if (Resource.CenterHorizontally)
-                        pos.X += Size.X / 2 - TyperInstance.LinesWidth[lineIdx] / 2;
+                        pos.X += (Size.X / 2) - (TyperInstance.LinesWidth[lineIdx] / 2);
 
                     if (Resource.CenterVertically)
-                        pos.Y += Size.Y / 2 - TyperInstance.Height / 2;
+                        pos.Y += (Size.Y / 2) - (TyperInstance.Height / 2);
 
                     DrawString(Resource.Font, pos, printedLine, fontSize: Resource.FontSize);
                 }

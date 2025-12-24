@@ -7,7 +7,7 @@ using Godot;
 
 #nullable enable
 
-public partial class TyperCore : GodotObject
+public partial class TyperCore(TyperResource resource, TextureRect target, Action? playTypingSound = null) : GodotObject
 {
     public enum StateEnum
     {
@@ -17,9 +17,9 @@ public partial class TyperCore : GodotObject
         Finished
     }
 
-    public TyperResource Resource { get; private set; }
-    public TextureRect Target { get; private set; }
-    public Action? PlayTypingSound { get; private set; }
+    public TyperResource Resource { get; private set; } = resource;
+    public TextureRect Target { get; private set; } = target;
+    public Action? PlayTypingSound { get; private set; } = playTypingSound;
 
     public string[] Lines { get; private set; } = [];
     public string? CurrentLine { get; private set; }
@@ -30,21 +30,12 @@ public partial class TyperCore : GodotObject
     public int CurrentFinalCaretBlinkTimes { get; private set; }
     public int CurrentFinalCaretBlinkTime { get; private set; }
 
-    SimpleStateManager<StateEnum> StateManager;
+    SimpleStateManager<StateEnum> StateManager = new(StateEnum.Started);
 
-    readonly Dictionary<int, List<(int Position, int Value)>> Pauses;
+    readonly Dictionary<int, List<(int Position, int Value)>> Pauses = [];
 
     public event Action? Updated;
     public event Action? Finished;
-
-    public TyperCore(TyperResource resource, TextureRect target, Action? playTypingSound = null)
-    {
-        Resource = resource;
-        Target = target;
-        PlayTypingSound = playTypingSound;
-        StateManager = new SimpleStateManager<StateEnum>(StateEnum.Started);
-        Pauses = [];
-    }
 
     public void Init(string text = "")
     {
@@ -136,7 +127,7 @@ public partial class TyperCore : GodotObject
     {
         var tags = new List<(int Position, int Value)>();
 
-        string pattern = @"(?<!\\)\[([^\]]+)\]";
+        const string pattern = @"(?<!\\)\[([^\]]+)\]";
 
         while (true)
         {
