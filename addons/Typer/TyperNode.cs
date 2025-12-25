@@ -3,7 +3,7 @@ using System.Linq;
 using Godot;
 using Godot.Collections;
 
-public partial class TyperNode : TextureRect
+public partial class TyperNode : Control
 {
     #region [Fields and Properties]
     [Signal] public delegate void FinishedEventHandler();

@@ -1,28 +1,21 @@
-[gd_scene load_steps=3 format=3 uid="uid://bxe6i3ypewns8"]
+[gd_scene load_steps=4 format=3 uid="uid://bxe6i3ypewns8"]
 
 [ext_resource type="Script" uid="uid://cnt1exm4qsnx6" path="res://addons/Typer/TyperNode.cs" id="1_1ulmt"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_c8lqv"]
 
 [sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_q2s2w"]
 random_volume_offset_db = 0.2
 
-[node name="Typer" type="TextureRect"]
+[node name="Typer" type="Panel"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_c8lqv")
 script = ExtResource("1_1ulmt")
-
-[node name="Background" type="ColorRect" parent="."]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0.489622, 0.489622, 0.489622, 1)
 
 [node name="TypingSound" type="AudioStreamPlayer" parent="."]
 stream = SubResource("AudioStreamRandomizer_q2s2w")

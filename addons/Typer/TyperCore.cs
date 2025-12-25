@@ -9,7 +9,7 @@ using Godot.Collections;
 
 #nullable enable
 
-public partial class TyperCore(TyperResource resource, TextureRect target, Action? playTypingSound = null) : GodotObject
+public partial class TyperCore(TyperResource resource, Control target, Action? playTypingSound = null) : GodotObject
 {
     #region [Fields and Properties]
     public enum StateEnum
@@ -21,7 +21,7 @@ public partial class TyperCore(TyperResource resource, TextureRect target, Actio
     }
 
     public TyperResource Resource = resource;
-    public TextureRect Target = target;
+    public Control Target = target;
     public Action? PlayTypingSound = playTypingSound;
 
     public string RawText = string.Empty;
