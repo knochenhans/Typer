@@ -1,7 +1,6 @@
-[gd_scene load_steps=4 format=3 uid="uid://bxe6i3ypewns8"]
+[gd_scene load_steps=3 format=3 uid="uid://bxe6i3ypewns8"]
 
 [ext_resource type="Script" uid="uid://cnt1exm4qsnx6" path="res://addons/Typer/TyperNode.cs" id="1_1ulmt"]
-[ext_resource type="Resource" uid="uid://bwa2k6rmdtv28" path="res://addons/Typer/TyperResource.tres" id="2_6c54x"]
 
 [sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_q2s2w"]
 random_volume_offset_db = 0.2
@@ -14,7 +13,6 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_1ulmt")
-Resource = ExtResource("2_6c54x")
 
 [node name="Background" type="ColorRect" parent="."]
 visible = false

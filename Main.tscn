@@ -1,9 +1,26 @@
-[gd_scene load_steps=3 format=3 uid="uid://b7hgrc37eo5c7"]
+[gd_scene load_steps=5 format=3 uid="uid://b7hgrc37eo5c7"]
 
 [ext_resource type="Script" uid="uid://hn1di7ty1e3r" path="res://Main.cs" id="1_ide47"]
 [ext_resource type="PackedScene" uid="uid://bxe6i3ypewns8" path="res://addons/Typer/TyperNode.tscn" id="2_qwbwl"]
+[ext_resource type="Resource" uid="uid://bwa2k6rmdtv28" path="res://addons/Typer/TyperResource.tres" id="3_r0du0"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_r0du0"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_ide47")
 
-[node name="Typer" parent="." instance=ExtResource("2_qwbwl")]
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
+custom_minimum_size = Vector2(200, 200)
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Panel" type="Panel" parent="ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_r0du0")
+
+[node name="Typer" parent="ScrollContainer/Panel" instance=ExtResource("2_qwbwl")]
+unique_name_in_owner = true
+layout_mode = 1
+Resource = ExtResource("3_r0du0")

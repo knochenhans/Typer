@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+
 using Godot;
+using Godot.Collections;
 
 #nullable enable
 
 public partial class TyperCore(TyperResource resource, TextureRect target, Action? playTypingSound = null) : GodotObject
 {
+    #region [Fields and Properties]
     public enum StateEnum
     {
         Started,
@@ -17,57 +20,38 @@ public partial class TyperCore(TyperResource resource, TextureRect target, Actio
         Finished
     }
 
-    public TyperResource Resource { get; private set; } = resource;
-    public TextureRect Target { get; private set; } = target;
-    public Action? PlayTypingSound { get; private set; } = playTypingSound;
+    public TyperResource Resource = resource;
+    public TextureRect Target = target;
+    public Action? PlayTypingSound = playTypingSound;
 
-    public string[] Lines { get; private set; } = [];
-    public string? CurrentLine { get; private set; }
-    public int CurrentLastLineIdx { get; private set; }
-    public int CurrentLastCharIdx { get; private set; }
-    public float[] LinesWidth { get; private set; } = [];
-    public float Height { get; private set; }
-    public int CurrentFinalCaretBlinkTimes { get; private set; }
-    public int CurrentFinalCaretBlinkTime { get; private set; }
+    public string RawText = string.Empty;
+    public string[] Lines = [];
+    public string? CurrentLine;
+    public int CurrentLastLineIdx;
+    public int CurrentLastCharIdx;
+    public float[] LinesWidth = [];
+    public float Height;
+    public float ControlWidth;
+    public int CurrentFinalCaretBlinkTimes;
+    public int CurrentFinalCaretBlinkTime;
 
     SimpleStateManager<StateEnum> StateManager = new(StateEnum.Started);
 
-    readonly Dictionary<int, List<(int Position, int Value)>> Pauses = [];
+    readonly System.Collections.Generic.Dictionary<int, List<(int Position, int Value)>> Pauses = [];
 
     public event Action? Updated;
     public event Action? Finished;
+    #endregion
 
-    public void Init(string text = "")
+    #region [Lifecycle]
+    public void Init(float width, string text = "")
     {
-        Pauses.Clear();
-        CurrentFinalCaretBlinkTime = 0;
-        CurrentFinalCaretBlinkTimes = 0;
-        CurrentLine = "";
-        CurrentLastCharIdx = 0;
-        CurrentLastLineIdx = 0;
-        Height = 0;
+        ControlWidth = width;
+        Reset();
 
         if (string.IsNullOrEmpty(text))
             text = Resource.Text;
-
-        Lines = text.Split([System.Environment.NewLine], StringSplitOptions.None);
-        LinesWidth = new float[Lines.Length];
-
-        for (int i = 0; i < Lines.Length; i++)
-        {
-            var size = Resource.Font.GetStringSize(Lines[i], fontSize: Resource.FontSize);
-            LinesWidth[i] = size.X;
-            Height += size.Y;
-
-            if (i < Lines.Length - 1)
-                Height += Resource.LineSpacing;
-
-            var pauses = ExtractPauses(ref Lines[i]);
-            if (pauses.Count > 0)
-                Pauses.Add(i, pauses);
-        }
-
-        Updated?.Invoke();
+        _ = PushText(text);
     }
 
     public async Task Start()
@@ -123,26 +107,6 @@ public partial class TyperCore(TyperResource resource, TextureRect target, Actio
         }
     }
 
-    static List<(int Position, int Value)> ExtractPauses(ref string input)
-    {
-        var tags = new List<(int Position, int Value)>();
-
-        const string pattern = @"(?<!\\)\[([^\]]+)\]";
-
-        while (true)
-        {
-            Match match = Regex.Match(input, pattern);
-            if (!match.Success)
-                break;
-
-            input = input.Remove(match.Index, match.Length);
-            if (int.TryParse(match.Groups[1].Value, out int v))
-                tags.Add((match.Index, v));
-        }
-
-        return [.. tags.OrderBy(tag => tag.Value)];
-    }
-
     public StateEnum CurrentState => StateManager.CurrentState;
 
     private async Task SwitchState(StateEnum newState)
@@ -151,6 +115,9 @@ public partial class TyperCore(TyperResource resource, TextureRect target, Actio
 
         switch (newState)
         {
+            case StateEnum.Started:
+                GD.Print("TyperCore: Started");
+                break;
             case StateEnum.Typing:
                 CurrentFinalCaretBlinkTime = 0;
                 await TypeLoop();
@@ -174,13 +141,17 @@ public partial class TyperCore(TyperResource resource, TextureRect target, Actio
                 if (Resource.FadeoutTime > 0)
                     await FadeHelper.TweenFadeModulate(Target, FadeHelper.FadeDirectionEnum.Out, Resource.FadeoutTime, targetOpacity: 0f);
 
-                Reset();
                 Finished?.Invoke();
                 break;
         }
     }
 
-    public void Stop() => StateManager.CurrentState = StateEnum.Finished;
+    public void Stop()
+    {
+        StateManager.CurrentState = StateEnum.Finished;
+        Reset();
+        Updated?.Invoke();
+    }
 
     public void Reset()
     {
@@ -190,7 +161,115 @@ public partial class TyperCore(TyperResource resource, TextureRect target, Actio
         CurrentLine = "";
         CurrentLastLineIdx = 0;
         CurrentLastCharIdx = 0;
+        CurrentFinalCaretBlinkTime = 0;
+        CurrentFinalCaretBlinkTimes = 0;
         Pauses.Clear();
+        // Updated?.Invoke();
+    }
+    #endregion
+
+    #region [Public]
+    public async Task PushText(string text)
+    {
+        // Reset();
+        RawText = text;
+        RebuildLayout();
+        await SwitchState(StateEnum.Typing);
         Updated?.Invoke();
     }
+
+    public void DrawPreview(string text)
+    {
+        Init(ControlWidth, text);
+        CurrentLastLineIdx = Lines.Length;
+        CurrentLastCharIdx = Lines.LastOrDefault()?.Length ?? 0;
+        Updated?.Invoke();
+    }
+    #endregion
+
+    #region [Utility]
+    static List<(int Position, int Value)> ExtractPauses(ref string input)
+    {
+        var tags = new List<(int Position, int Value)>();
+
+        const string pattern = @"(?<!\\)\[([^\]]+)\]";
+
+        while (true)
+        {
+            Match match = Regex.Match(input, pattern);
+            if (!match.Success)
+                break;
+
+            input = input.Remove(match.Index, match.Length);
+            if (int.TryParse(match.Groups[1].Value, out int v))
+                tags.Add((match.Index, v));
+        }
+
+        return [.. tags.OrderBy(tag => tag.Value)];
+    }
+
+    private string[] WrapText(string text, Font font, int fontSize)
+    {
+        var paragraphs = text.Replace("\r\n", "\n").Split('\n');
+        var lines = new Array<string>();
+
+        foreach (var para in paragraphs)
+        {
+            if (string.IsNullOrEmpty(para))
+            {
+                // Preserve explicit blank lines
+                lines.Add("");
+                continue;
+            }
+
+            var words = para.Split(' ');
+            string currentLine = "";
+
+            foreach (var word in words)
+            {
+                string testLine = currentLine.Length == 0
+                    ? word
+                    : currentLine + " " + word;
+
+                float testWidth = font.GetStringSize(
+                    testLine,
+                    fontSize: fontSize
+                ).X;
+
+                if (testWidth > ControlWidth && currentLine.Length > 0)
+                {
+                    lines.Add(currentLine);
+                    currentLine = word;
+                }
+                else
+                {
+                    currentLine = testLine;
+                }
+            }
+
+            if (currentLine.Length > 0)
+                lines.Add(currentLine);
+        }
+
+        return [.. lines];
+    }
+
+    private void RebuildLayout()
+    {
+        Lines = [.. Lines, .. WrapText(RawText, Resource.Font, Resource.FontSize)];
+        LinesWidth = [.. Lines.Select(l => Resource.Font.GetStringSize(l, fontSize: Resource.FontSize).X)];
+
+        Height =
+            (Lines.Length * Resource.FontSize) +
+            ((Lines.Length - 1) * Resource.LineSpacing);
+
+        for (int i = 0; i < Lines.Length; i++)
+        {
+            var pauses = ExtractPauses(ref Lines[i]);
+            if (pauses.Count > 0)
+                Pauses.Add(i, pauses);
+            Lines[i] = Lines[i].ReplaceN(@"\\", "");
+        }
+    }
+    #endregion
 }
