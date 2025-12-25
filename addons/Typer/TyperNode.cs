@@ -21,9 +21,12 @@ public partial class TyperNode : Control
     {
         ((AudioStreamRandomizer)TypingSoundNode.Stream).AddStream(-1, Resource.TypingSound);
 
-        // create and configure Typer
         TyperInstance = new TyperCore(Resource, this, () => TypingSoundNode.Play());
-        TyperInstance.Updated += () => QueueRedraw();
+        TyperInstance.Updated += () =>
+        {
+            QueueRedraw();
+            CustomMinimumSize = CalculateGetMinimumSize();
+        };
         TyperInstance.Finished += () => EmitSignal(SignalName.Finished);
     }
 
@@ -63,7 +66,6 @@ public partial class TyperNode : Control
 
     public void Reset()
     {
-        Texture = null;
         QueueRedraw();
         Hide();
     }
@@ -93,6 +95,18 @@ public partial class TyperNode : Control
             pos.Y += (Size.Y / 2) - (TyperInstance.Height / 2);
 
         DrawString(Resource.Font, pos, printedLine, fontSize: Resource.FontSize, modulate: Resource.FontColor);
+    }
+
+    public Vector2 CalculateGetMinimumSize()
+    {
+        //TODO: Ignores Resource.LineSpacing for now, as this represents not the inter-line spacing but added to height at which each line is drawn.
+        if (TyperInstance == null)
+            return Vector2.Zero;
+
+        float lineHeight = Resource.FontSize;
+        int lineCount = TyperInstance.CurrentLastLineIdx + 1;
+
+        return new Vector2(0, lineCount * lineHeight);
     }
 
     private void DrawCaret(Vector2 pos, string printedLine)
