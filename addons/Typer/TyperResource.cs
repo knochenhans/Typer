@@ -26,8 +26,4 @@ public partial class TyperResource : Resource
     [Export] public float StartDelay = 1.0f;
     [Export] public float PreFadeoutTime = 1.0f;
     [Export] public float FadeoutTime = 1.0f;
-
-    [ExportGroup("Text")]
-    [Export(PropertyHint.MultilineText)] public string Text = "";
-
 }

@@ -44,14 +44,10 @@ public partial class TyperCore(TyperResource resource, Control target, Action? p
     #endregion
 
     #region [Lifecycle]
-    public void Init(float width, string text = "")
+    public void Init(float width)
     {
         ControlWidth = width;
         Reset();
-
-        if (string.IsNullOrEmpty(text))
-            text = Resource.Text;
-        _ = PushText(text);
     }
 
     public async Task Start()
@@ -149,8 +145,8 @@ public partial class TyperCore(TyperResource resource, Control target, Action? p
     public void Stop()
     {
         StateManager.CurrentState = StateEnum.Finished;
-        Reset();
-        Updated?.Invoke();
+        // Reset();
+        // Updated?.Invoke();
     }
 
     public void Reset()
@@ -178,13 +174,13 @@ public partial class TyperCore(TyperResource resource, Control target, Action? p
         Updated?.Invoke();
     }
 
-    public void DrawPreview(string text)
-    {
-        Init(ControlWidth, text);
-        CurrentLastLineIdx = Lines.Length;
-        CurrentLastCharIdx = Lines.LastOrDefault()?.Length ?? 0;
-        Updated?.Invoke();
-    }
+    // public void DrawPreview(string text)
+    // {
+    //     Init(ControlWidth);
+    //     CurrentLastLineIdx = Lines.Length;
+    //     CurrentLastCharIdx = Lines.LastOrDefault()?.Length ?? 0;
+    //     Updated?.Invoke();
+    // }
     #endregion
 
     #region [Utility]

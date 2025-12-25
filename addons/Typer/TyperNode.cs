@@ -56,9 +56,9 @@ public partial class TyperNode : Control
     #endregion
 
     #region [Lifecycle]
-    public void Init(string text = "")
+    public void Init()
     {
-        TyperInstance.Init(Size.X, text);
+        TyperInstance.Init(Size.X);
     }
 
     public async void Start() => await TyperInstance.Start();
@@ -72,8 +72,13 @@ public partial class TyperNode : Control
     #endregion
 
     #region [Public]
-    public void DrawPreview(string text) => TyperInstance.DrawPreview(text);
-    public void PushText(string text) => TyperInstance.PushText(text);
+    // public void DrawPreview(string text) => TyperInstance.DrawPreview(text);
+    public void PushText(string text) => _ = TyperInstance.PushText(text);
+    public async System.Threading.Tasks.Task PushTextAsync(string text)
+    {
+        await TyperInstance.PushText(text);
+        await ToSignal(this, SignalName.Finished);
+    }
     #endregion
 
     #region [Utility]
