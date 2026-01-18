@@ -20,6 +20,7 @@ public partial class TyperResource : Resource
 
     [ExportGroup("Sound")]
     [Export] public AudioStream TypingSound = null;
+    [Export] public bool LoopTypingSound = false;
 
     [ExportGroup("Timing")]
     [Export] public float TypingSpeed = 0.05f;

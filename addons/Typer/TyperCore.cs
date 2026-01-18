@@ -9,7 +9,7 @@ using Godot.Collections;
 
 #nullable enable
 
-public partial class TyperCore(TyperResource resource, Control target, Action? playTypingSound = null) : GodotObject
+public partial class TyperCore(TyperResource resource, Control target, AudioStreamPlayer typingSoundPlayer) : GodotObject
 {
     #region [Fields and Properties]
     public enum StateEnum
@@ -22,7 +22,6 @@ public partial class TyperCore(TyperResource resource, Control target, Action? p
 
     public TyperResource Resource = resource;
     public Control Target = target;
-    public Action? PlayTypingSound = playTypingSound;
 
     public string RawText = string.Empty;
     public string[] Lines = [];
@@ -34,6 +33,8 @@ public partial class TyperCore(TyperResource resource, Control target, Action? p
     public float ControlWidth;
     public int CurrentFinalCaretBlinkTimes;
     public int CurrentFinalCaretBlinkTime;
+
+    AudioStreamPlayer TypingSoundPlayer = typingSoundPlayer;
 
     SimpleStateManager<StateEnum> StateManager = new(StateEnum.Started);
 
@@ -91,7 +92,9 @@ public partial class TyperCore(TyperResource resource, Control target, Action? p
 
                 CurrentLastCharIdx++;
                 Updated?.Invoke();
-                PlayTypingSound?.Invoke();
+
+                if (!Resource.LoopTypingSound)
+                    TypingSoundPlayer.Play();
             }
             else
             {
@@ -115,6 +118,8 @@ public partial class TyperCore(TyperResource resource, Control target, Action? p
                 GD.Print("TyperCore: Started");
                 break;
             case StateEnum.Typing:
+                if (Resource.LoopTypingSound)
+                    TypingSoundPlayer.Play();
                 CurrentFinalCaretBlinkTime = 0;
                 await TypeLoop();
                 break;
@@ -131,6 +136,9 @@ public partial class TyperCore(TyperResource resource, Control target, Action? p
                     await SwitchState(StateEnum.Typing);
                 break;
             case StateEnum.Finished:
+                if (Resource.LoopTypingSound)
+                    TypingSoundPlayer.Stop();
+
                 if (Resource.PreFadeoutTime > 0)
                     await Task.Delay((int)(Resource.PreFadeoutTime * 1000));
 
