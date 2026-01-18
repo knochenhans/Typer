@@ -1,53 +1,70 @@
 using System.Linq;
+using System.Threading.Tasks;
 
 using Godot;
 using Godot.Collections;
 
-public partial class TyperNode : Control
+public partial class TyperNode : PanelContainer
 {
     #region [Fields and Properties]
     [Signal] public delegate void FinishedEventHandler();
+    [Signal] public delegate void SetupFinishedEventHandler();
 
     [Export] public TyperResource Resource;
 
-    // Replace the previous internal typing state with a Typer instance
-    TyperCore TyperInstance;
+    TyperCore TyperCore;
 
     AudioStreamPlayer TypingSoundNode => GetNode<AudioStreamPlayer>("TypingSound");
     #endregion
 
     #region [Godot]
-    public override void _Ready()
+    public override async void _Ready()
     {
+        SetupFinished += OnSetupFinished;
+
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+
         ((AudioStreamRandomizer)TypingSoundNode.Stream).AddStream(-1, Resource.TypingSound);
 
-        TyperInstance = new TyperCore(Resource, this, () => TypingSoundNode.Play());
-        TyperInstance.Updated += () =>
-        {
-            QueueRedraw();
-            CustomMinimumSize = CalculateGetMinimumSize();
-        };
-        TyperInstance.Finished += () => EmitSignal(SignalName.Finished);
+        TyperCore = new TyperCore(Resource, this, TypingSoundNode);
+        TyperCore.Updated += () => Redraw();
+        TyperCore.Finished += () => EmitSignal(SignalName.Finished);
+        EmitSignal(SignalName.SetupFinished);
+    }
+
+    private void Redraw()
+    {
+        if (TyperCore.CurrentState != TyperCore.StateEnum.Typing)
+            return;
+
+        QueueRedraw();
+        CustomMinimumSize = CalculateGetMinimumSize();
     }
 
     public override void _Draw()
     {
-        var state = TyperInstance.CurrentState;
+        if (TyperCore == null)
+        {
+            base._Draw();
+            return;
+        }
+
+        var state = TyperCore.CurrentState;
         if (state == TyperCore.StateEnum.Started)
         {
             base._Draw();
             return;
         }
 
-        if (TyperInstance.CurrentLine != null)
+        if (TyperCore.CurrentLine != null)
         {
             var pos = Vector2.Zero;
             var printedLine = "";
 
-            for (int lineIdx = 0; lineIdx <= TyperInstance.CurrentLastLineIdx; lineIdx++)
+            for (int lineIdx = 0; lineIdx <= TyperCore.CurrentLastLineIdx; lineIdx++)
             {
-                if (lineIdx < TyperInstance.Lines.Length)
-                    DrawLine(out pos, out printedLine, lineIdx);
+                if (lineIdx < TyperCore.Lines.Length)
+                    DrawTextLine(out pos, out printedLine, lineIdx);
             }
 
             DrawCaret(pos, printedLine);
@@ -56,13 +73,8 @@ public partial class TyperNode : Control
     #endregion
 
     #region [Lifecycle]
-    public void Init()
-    {
-        TyperInstance.Init(Size.X);
-    }
-
-    public async void Start() => await TyperInstance.Start();
-    public void Stop() => TyperInstance.Stop();
+    public async void Start() => await TyperCore.Start();
+    public void Stop() => TyperCore.Stop();
 
     public void Reset()
     {
@@ -72,32 +84,51 @@ public partial class TyperNode : Control
     #endregion
 
     #region [Public]
-    // public void DrawPreview(string text) => TyperInstance.DrawPreview(text);
-    public void PushText(string text) => _ = TyperInstance.PushText(text);
-    public async System.Threading.Tasks.Task PushTextAsync(string text)
+    public void PushText(string text) => _ = TyperCore.PushText(text);
+    public Task PushTextAsync(string text)
     {
-        await TyperInstance.PushText(text);
-        await ToSignal(this, SignalName.Finished);
+        var tcs = new TaskCompletionSource();
+
+        void OnFinished()
+        {
+            Finished -= OnFinished;
+            tcs.TrySetResult();
+        }
+
+        Finished += OnFinished;
+        _ = TyperCore.PushText(text);
+
+        return tcs.Task;
+    }
+
+    public async Task Wait(float seconds) => await ToSignal(GetTree().CreateTimer(seconds), "timeout");
+    public void ClearText()
+    {
+        TyperCore?.ClearText();
     }
     #endregion
 
-    #region [Utility]
-    private void DrawLine(out Vector2 pos, out string printedLine, int lineIdx)
-    {
-        var currentLine = TyperInstance.Lines[lineIdx];
+    #region [Events]
+    public void OnSetupFinished() => TyperCore.Init(Size.X);
+    #endregion
 
-        if (lineIdx < TyperInstance.CurrentLastLineIdx)
+    #region [Utility]
+    private void DrawTextLine(out Vector2 pos, out string printedLine, int lineIdx)
+    {
+        var currentLine = TyperCore.Lines[lineIdx];
+
+        if (lineIdx < TyperCore.CurrentLastLineIdx)
             printedLine = currentLine;
         else
-            printedLine = currentLine[..TyperInstance.CurrentLastCharIdx];
+            printedLine = currentLine[..TyperCore.CurrentLastCharIdx];
 
         pos = new Vector2(0, Resource.FontSize + (Resource.LineSpacing * lineIdx));
 
         if (Resource.CenterHorizontally)
-            pos.X += (Size.X / 2) - (TyperInstance.LinesWidth[lineIdx] / 2);
+            pos.X += (Size.X / 2) - (TyperCore.LinesWidth[lineIdx] / 2);
 
         if (Resource.CenterVertically)
-            pos.Y += (Size.Y / 2) - (TyperInstance.Height / 2);
+            pos.Y += (Size.Y / 2) - (TyperCore.Height / 2);
 
         DrawString(Resource.Font, pos, printedLine, fontSize: Resource.FontSize, modulate: Resource.FontColor);
     }
@@ -105,18 +136,18 @@ public partial class TyperNode : Control
     public Vector2 CalculateGetMinimumSize()
     {
         //TODO: Ignores Resource.LineSpacing for now, as this represents not the inter-line spacing but added to height at which each line is drawn.
-        if (TyperInstance == null)
+        if (TyperCore == null)
             return Vector2.Zero;
 
         float lineHeight = Resource.FontSize;
-        int lineCount = TyperInstance.CurrentLastLineIdx + 1;
+        int lineCount = TyperCore.CurrentLastLineIdx + 1;
 
         return new Vector2(0, lineCount * lineHeight);
     }
 
     private void DrawCaret(Vector2 pos, string printedLine)
     {
-        if (TyperInstance.CurrentFinalCaretBlinkTime % 2 == 0 && Resource.Caret != "")
+        if (TyperCore.CurrentFinalCaretBlinkTime % 2 == 0 && Resource.Caret != "")
         {
             DrawChar(
                 Resource.Font,

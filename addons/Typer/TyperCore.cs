@@ -118,6 +118,7 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
         switch (newState)
         {
             case StateEnum.Started:
+                // TODO: This is never used
                 GD.Print("TyperCore: Started");
                 break;
             case StateEnum.Typing:
@@ -153,12 +154,7 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
         }
     }
 
-    public void Stop()
-    {
-        StateManager.CurrentState = StateEnum.Finished;
-        // Reset();
-        // Updated?.Invoke();
-    }
+    public void Stop() => StateManager.CurrentState = StateEnum.Finished;
 
     public void Reset()
     {
@@ -185,13 +181,11 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
         Updated?.Invoke();
     }
 
-    // public void DrawPreview(string text)
-    // {
-    //     Init(ControlWidth);
-    //     CurrentLastLineIdx = Lines.Length;
-    //     CurrentLastCharIdx = Lines.LastOrDefault()?.Length ?? 0;
-    //     Updated?.Invoke();
-    // }
+    public void ClearText()
+    {
+        Reset();
+        Updated?.Invoke();
+    }
     #endregion
 
     #region [Utility]
