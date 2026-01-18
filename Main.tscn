@@ -20,7 +20,9 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_r0du0")
 
-[node name="Typer" parent="ScrollContainer/Panel" instance=ExtResource("2_qwbwl")]
+[node name="Typer" parent="ScrollContainer" instance=ExtResource("2_qwbwl")]
 unique_name_in_owner = true
-layout_mode = 1
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 Resource = ExtResource("3_r0du0")
