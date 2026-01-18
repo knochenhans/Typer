@@ -36,6 +36,8 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
 
     AudioStreamPlayer TypingSoundPlayer = typingSoundPlayer;
 
+    Color OriginalModulate;
+
     SimpleStateManager<StateEnum> StateManager = new(StateEnum.Started);
 
     readonly System.Collections.Generic.Dictionary<int, List<(int Position, int Value)>> Pauses = [];
@@ -48,6 +50,7 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
     public void Init(float width)
     {
         ControlWidth = width;
+        OriginalModulate = Target.Modulate;
         Reset();
     }
 
@@ -168,7 +171,7 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
         CurrentFinalCaretBlinkTime = 0;
         CurrentFinalCaretBlinkTimes = 0;
         Pauses.Clear();
-        // Updated?.Invoke();
+        Target.Modulate = OriginalModulate;
     }
     #endregion
 
