@@ -1,28 +1,36 @@
-[gd_scene load_steps=5 format=3 uid="uid://b7hgrc37eo5c7"]
+[gd_scene format=3 uid="uid://b7hgrc37eo5c7"]
 
 [ext_resource type="Script" uid="uid://hn1di7ty1e3r" path="res://Main.cs" id="1_ide47"]
 [ext_resource type="PackedScene" uid="uid://bxe6i3ypewns8" path="res://addons/Typer/TyperNode.tscn" id="2_qwbwl"]
-[ext_resource type="Resource" uid="uid://bwa2k6rmdtv28" path="res://addons/Typer/TyperResource.tres" id="3_r0du0"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_r0du0"]
 
-[node name="Main" type="Node"]
+[node name="Main" type="Node" unique_id=818309463]
 script = ExtResource("1_ide47")
 
-[node name="ScrollContainer" type="ScrollContainer" parent="."]
-custom_minimum_size = Vector2(200, 200)
+[node name="Button" type="Button" parent="." unique_id=1680120069]
+offset_left = 205.0
+offset_right = 250.0
+offset_bottom = 31.0
+text = "Type"
+
+[node name="PanelContainer" type="PanelContainer" parent="." unique_id=1551427407]
 offset_right = 40.0
 offset_bottom = 40.0
 
-[node name="Panel" type="Panel" parent="ScrollContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer" unique_id=1303542581]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="PanelContainer/HBoxContainer" unique_id=406464664]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+
+[node name="Panel" type="Panel" parent="PanelContainer/HBoxContainer/ScrollContainer" unique_id=516010898]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_r0du0")
 
-[node name="Typer" parent="ScrollContainer" instance=ExtResource("2_qwbwl")]
+[node name="Typer" parent="PanelContainer/HBoxContainer/ScrollContainer" unique_id=813484527 instance=ExtResource("2_qwbwl")]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-Resource = ExtResource("3_r0du0")

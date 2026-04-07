@@ -39,7 +39,11 @@ public partial class TyperNode : Control
             return;
 
         QueueRedraw();
-        CustomMinimumSize = CalculateGetMinimumSize();
+    }
+
+    public override Vector2 _GetMinimumSize()
+    {
+        return CalculateGetMinimumSize();
     }
 
     public override void _Draw()
@@ -74,7 +78,13 @@ public partial class TyperNode : Control
     #endregion
 
     #region [Lifecycle]
-    public async void Start() => await TyperCore.Start();
+    public async void Start()
+    {
+        Stop();
+        Reset();
+        await TyperCore.Start();
+    }
+
     public void Stop() => TyperCore.Stop();
 
     public void Reset()
@@ -132,6 +142,8 @@ public partial class TyperNode : Control
             pos.Y += (Size.Y / 2) - (TyperCore.Height / 2);
 
         DrawString(Resource.Font, pos, printedLine, fontSize: Resource.FontSize, modulate: Resource.FontColor);
+
+        UpdateMinimumSize();
     }
 
     public Vector2 CalculateGetMinimumSize()
@@ -143,7 +155,9 @@ public partial class TyperNode : Control
         float lineHeight = Resource.FontSize;
         int lineCount = TyperCore.CurrentLastLineIdx + 1;
 
-        return new Vector2(0, lineCount * lineHeight);
+        var ControlWidth = TyperCore.LinesWidth.Length > 0 ? TyperCore.LinesWidth.Max() : 0;
+
+        return new Vector2(ControlWidth, lineCount * lineHeight);
     }
 
     private void DrawCaret(Vector2 pos, string printedLine)

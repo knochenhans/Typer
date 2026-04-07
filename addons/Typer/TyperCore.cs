@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Godot;
@@ -41,6 +42,7 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
     SimpleStateManager<StateEnum> StateManager = new(StateEnum.Started);
 
     readonly System.Collections.Generic.Dictionary<int, List<(int Position, int Value)>> Pauses = [];
+    private CancellationTokenSource? cts;
 
     public event Action? Updated;
     public event Action? Finished;
@@ -56,18 +58,22 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
 
     public async Task Start()
     {
-        await Task.Delay((int)(Resource.StartDelay * 1000));
-        await SwitchState(StateEnum.Typing);
+        cts = new CancellationTokenSource();
+        await Task.Delay((int)(Resource.StartDelay * 1000), cts.Token);
+        await SwitchState(StateEnum.Typing, cts.Token);
     }
 
-    private async Task TypeLoop()
+    private async Task TypeLoop(CancellationToken cancellationToken)
     {
         while (true)
         {
+            if (cancellationToken.IsCancellationRequested)
+                return;
+
             if (CurrentLastLineIdx >= Lines.Length)
             {
                 CurrentFinalCaretBlinkTimes = Resource.FinalCaretBlinkTimes;
-                await SwitchState(StateEnum.Pause);
+                await SwitchState(StateEnum.Pause, cancellationToken);
                 break;
             }
 
@@ -87,7 +93,7 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
                             CurrentFinalCaretBlinkTimes = value;
                             // remove this pause and go to pause state
                             pausePositions.Remove((position, value));
-                            await SwitchState(StateEnum.Pause);
+                            await SwitchState(StateEnum.Pause, cancellationToken);
                             return;
                         }
                     }
@@ -105,13 +111,13 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
                 CurrentLastCharIdx = 0;
             }
 
-            await Task.Delay((int)(Resource.TypingSpeed * 1000));
+            await Task.Delay((int)(Resource.TypingSpeed * 1000), cancellationToken);
         }
     }
 
     public StateEnum CurrentState => StateManager.CurrentState;
 
-    private async Task SwitchState(StateEnum newState)
+    private async Task SwitchState(StateEnum newState, CancellationToken cancellationToken = default)
     {
         StateManager.CurrentState = newState;
 
@@ -125,26 +131,26 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
                 if (Resource.LoopTypingSound)
                     TypingSoundPlayer.Play();
                 CurrentFinalCaretBlinkTime = 0;
-                await TypeLoop();
+                await TypeLoop(cancellationToken);
                 break;
             case StateEnum.Pause:
                 while (CurrentFinalCaretBlinkTime < (CurrentFinalCaretBlinkTimes * 2) - 1)
                 {
                     CurrentFinalCaretBlinkTime++;
                     Updated?.Invoke();
-                    await Task.Delay((int)(Resource.CaretBlinkTime * 1000));
+                    await Task.Delay((int)(Resource.CaretBlinkTime * 1000), cancellationToken);
                 }
                 if (CurrentLastLineIdx == Lines.Length)
-                    await SwitchState(StateEnum.Finished);
+                    await SwitchState(StateEnum.Finished, cancellationToken);
                 else
-                    await SwitchState(StateEnum.Typing);
+                    await SwitchState(StateEnum.Typing, cancellationToken);
                 break;
             case StateEnum.Finished:
                 if (Resource.LoopTypingSound)
                     TypingSoundPlayer.Stop();
 
                 if (Resource.PreFadeoutTime > 0)
-                    await Task.Delay((int)(Resource.PreFadeoutTime * 1000));
+                    await Task.Delay((int)(Resource.PreFadeoutTime * 1000), cancellationToken);
 
                 if (Resource.FadeoutTime > 0)
                     await FadeHelper.TweenFadeModulate(Target, FadeHelper.FadeDirectionEnum.Out, Resource.FadeoutTime, targetOpacity: 0f);
@@ -154,10 +160,17 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
         }
     }
 
-    public void Stop() => StateManager.CurrentState = StateEnum.Finished;
+    public void Stop()
+    {
+        cts?.Cancel();
+        StateManager.CurrentState = StateEnum.Finished;
+    }
 
     public void Reset()
     {
+        cts?.Cancel();
+        cts = new CancellationTokenSource();
+
         Lines = [];
         LinesWidth = [];
         Height = 0;
@@ -174,10 +187,15 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
     #region [Public]
     public async Task PushText(string text)
     {
-        // Reset();
+        Stop();
+        Reset();
+
         RawText = text;
         RebuildLayout();
-        await SwitchState(StateEnum.Typing);
+
+        cts = new CancellationTokenSource();
+        await SwitchState(StateEnum.Typing, cts.Token);
+
         Updated?.Invoke();
     }
 
@@ -257,7 +275,7 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
 
     private void RebuildLayout()
     {
-        Lines = [.. Lines, .. WrapText(RawText, Resource.Font, Resource.FontSize)];
+        Lines = WrapText(RawText, Resource.Font, Resource.FontSize);
         LinesWidth = [.. Lines.Select(l => Resource.Font.GetStringSize(l, fontSize: Resource.FontSize).X)];
 
         Height =
