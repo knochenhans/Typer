@@ -24,8 +24,6 @@ public partial class TyperNode : Control
     {
         SetupFinished += OnSetupFinished;
 
-        // await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-
         if (TypingSoundNode.Stream is AudioStreamRandomizer randomizer && Resource.TypingSound != null)
         {
             randomizer = (AudioStreamRandomizer)randomizer.Duplicate();
@@ -111,6 +109,7 @@ public partial class TyperNode : Control
     #region [Public]
     public void PushText(string text)
     {
+        GD.Print($"Pushing text to Typer: {text}");
         TyperCore.PushText(text);
         TyperCore.Finished += OnFinished;
     }
@@ -123,6 +122,8 @@ public partial class TyperNode : Control
         {
             Finished -= OnFinished;
             tcs.TrySetResult();
+
+            GD.Print($"Finished displaying text: {text}");
         }
 
         Finished += OnFinished;

@@ -279,7 +279,7 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
     private void RebuildLayout()
     {
         Lines = WrapText(RawText, Resource.Font, Resource.FontSize);
-        LinesWidth = Lines.Select(l => Resource.Font.GetStringSize(l, fontSize: Resource.FontSize).X).ToArray();
+        LinesWidth = [.. Lines.Select(l => Resource.Font.GetStringSize(l, fontSize: Resource.FontSize).X)];
 
         Height =
             (Lines.Length * Resource.FontSize) +
