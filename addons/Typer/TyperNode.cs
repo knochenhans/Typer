@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Godot;
 using Godot.Collections;
 
+[GlobalClass]
 public partial class TyperNode : PanelContainer
 {
     #region [Fields and Properties]
@@ -18,11 +19,11 @@ public partial class TyperNode : PanelContainer
     #endregion
 
     #region [Godot]
-    public override async void _Ready()
+    public override void _Ready()
     {
         SetupFinished += OnSetupFinished;
 
-        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        // await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 
         ((AudioStreamRandomizer)TypingSoundNode.Stream).AddStream(-1, Resource.TypingSound);
 
