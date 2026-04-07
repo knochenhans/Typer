@@ -5,7 +5,7 @@ using Godot;
 using Godot.Collections;
 
 [GlobalClass]
-public partial class TyperNode : PanelContainer
+public partial class TyperNode : Control
 {
     #region [Fields and Properties]
     [Signal] public delegate void FinishedEventHandler();
