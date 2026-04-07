@@ -112,6 +112,7 @@ public partial class TyperNode : Control
     public void PushText(string text)
     {
         TyperCore.PushText(text);
+        TyperCore.Finished += OnFinished;
     }
 
     public Task PushTextAsync(string text)
@@ -128,6 +129,13 @@ public partial class TyperNode : Control
         TyperCore.PushText(text);
 
         return tcs.Task;
+    }
+
+    public void OnFinished()
+    {
+        EmitSignal(SignalName.Finished);
+
+        GD.Print($"Finished displaying text: {TyperCore.RawText}");
     }
 
     public async Task Wait(float seconds) => await ToSignal(GetTree().CreateTimer(seconds), "timeout");

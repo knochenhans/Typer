@@ -7,6 +7,9 @@ using Godot;
 
 public partial class TyperCore(TyperResource resource, Control target, AudioStreamPlayer typingSoundPlayer) : GodotObject
 {
+    [Signal] public delegate void UpdatedEventHandler();
+    [Signal] public delegate void FinishedEventHandler();
+
     public enum StateEnum
     {
         Idle,
@@ -39,9 +42,6 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
     private StateEnum state = StateEnum.Idle;
 
     private readonly Dictionary<int, List<(int Position, int Value)>> Pauses = [];
-
-    public event Action? Updated;
-    public event Action? Finished;
 
     public StateEnum CurrentState => state;
 
@@ -128,7 +128,7 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
             }
 
             CurrentLastCharIdx++;
-            Updated?.Invoke();
+            EmitSignal(SignalName.Updated);
 
             if (!Resource.LoopTypingSound)
                 TypingSoundPlayer?.Play();
@@ -150,7 +150,7 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
         timer = Resource.CaretBlinkTime;
 
         CurrentFinalCaretBlinkTime++;
-        Updated?.Invoke();
+        EmitSignal(SignalName.Updated);
 
         if (CurrentFinalCaretBlinkTime >= (CurrentFinalCaretBlinkTimes * 2))
         {
@@ -177,7 +177,7 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
         if (fadeElapsed >= Resource.FadeoutTime)
         {
             state = StateEnum.Finished;
-            Finished?.Invoke();
+            EmitSignal(SignalName.Finished);
         }
     }
 
@@ -189,13 +189,13 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
         RebuildLayout();
         Start();
 
-        Updated?.Invoke();
+        EmitSignal(SignalName.Updated);
     }
 
     public void ClearText()
     {
         Reset();
-        Updated?.Invoke();
+        EmitSignal(SignalName.Updated);
     }
 
     public void Reset()
