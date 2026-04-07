@@ -212,6 +212,10 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
 
         state = StateEnum.Idle;
         timer = 0;
+        fadeElapsed = 0;
+
+        if (IsInstanceValid(Target))
+            Target.Modulate = new Color(1, 1, 1, 1);
     }
 
     static List<(int Position, int Value)> ExtractPauses(ref string input)
