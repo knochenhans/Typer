@@ -9,6 +9,7 @@ public partial class TyperNode : Control
 {
     #region [Fields and Properties]
     [Signal] public delegate void FinishedEventHandler();
+    [Signal] public delegate void StoppedEventHandler();
     [Signal] public delegate void SetupFinishedEventHandler();
 
     [Export] public TyperResource Resource;
@@ -25,7 +26,12 @@ public partial class TyperNode : Control
 
         // await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 
-        ((AudioStreamRandomizer)TypingSoundNode.Stream).AddStream(-1, Resource.TypingSound);
+        if (TypingSoundNode.Stream is AudioStreamRandomizer randomizer && Resource.TypingSound != null)
+        {
+            randomizer = (AudioStreamRandomizer)randomizer.Duplicate();
+            TypingSoundNode.Stream = randomizer;
+            randomizer.AddStream(-1, Resource.TypingSound);
+        }
 
         TyperCore = new TyperCore(Resource, this, TypingSoundNode);
         TyperCore.Updated += () => Redraw();
@@ -33,11 +39,18 @@ public partial class TyperNode : Control
         EmitSignal(SignalName.SetupFinished);
     }
 
+    public override void _ExitTree()
+    {
+        TyperCore?.Stop();
+    }
+
+    public override void _Process(double delta)
+    {
+        TyperCore?.Update(delta);
+    }
+
     private void Redraw()
     {
-        if (TyperCore.CurrentState != TyperCore.StateEnum.Typing)
-            return;
-
         QueueRedraw();
     }
 
@@ -55,7 +68,7 @@ public partial class TyperNode : Control
         }
 
         var state = TyperCore.CurrentState;
-        if (state == TyperCore.StateEnum.Started)
+        if (state == TyperCore.StateEnum.Idle || state == TyperCore.StateEnum.StartDelay || state == TyperCore.StateEnum.Finished)
         {
             base._Draw();
             return;
@@ -78,24 +91,29 @@ public partial class TyperNode : Control
     #endregion
 
     #region [Lifecycle]
-    public async void Start()
+    public void Start()
     {
-        Stop();
-        Reset();
-        await TyperCore.Start();
+        TyperCore.Start();
     }
 
-    public void Stop() => TyperCore.Stop();
+    public void Stop()
+    {
+        TyperCore?.Stop();
+        EmitSignal(SignalName.Stopped);
+    }
 
     public void Reset()
     {
         QueueRedraw();
-        Hide();
     }
     #endregion
 
     #region [Public]
-    public void PushText(string text) => _ = TyperCore.PushText(text);
+    public void PushText(string text)
+    {
+        TyperCore.PushText(text);
+    }
+
     public Task PushTextAsync(string text)
     {
         var tcs = new TaskCompletionSource();
@@ -107,7 +125,7 @@ public partial class TyperNode : Control
         }
 
         Finished += OnFinished;
-        _ = TyperCore.PushText(text);
+        TyperCore.PushText(text);
 
         return tcs.Task;
     }

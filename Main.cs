@@ -13,6 +13,6 @@ public partial class Main : Node
     public void OnButtonPressed()
     {
         var typerNode = GetNode<TyperNode>("%Typer");
-        typerNode.PushText("Hello, World! Hello World! Hello\\, World! Hello World! Hello\\, World!");
+        typerNode.PushText("Hello, World! Hello World! Hello\n, World! Hello World! Hello\n, World!");
     }
 }
