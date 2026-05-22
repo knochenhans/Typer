@@ -21,3 +21,4 @@ Resource = ExtResource("2_yy1fl")
 
 [node name="TypingSound" type="AudioStreamPlayer" parent="." unique_id=693439946]
 stream = SubResource("AudioStreamRandomizer_q2s2w")
+volume_db = -6.0

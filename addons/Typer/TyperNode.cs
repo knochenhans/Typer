@@ -32,7 +32,7 @@ public partial class TyperNode : Control
         }
 
         TyperCore = new TyperCore(Resource, this, TypingSoundNode);
-        TyperCore.Updated += () => Redraw();
+        TyperCore.Updated += Redraw;
         TyperCore.Finished += () => EmitSignal(SignalName.Finished);
         EmitSignal(SignalName.SetupFinished);
     }
