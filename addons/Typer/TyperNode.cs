@@ -2,7 +2,6 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Godot;
-using Godot.Collections;
 
 [GlobalClass]
 public partial class TyperNode : Control
@@ -107,6 +106,10 @@ public partial class TyperNode : Control
     #endregion
 
     #region [Public]
+    /// <summary>
+    /// Pushes text to the Typer. If the Typer is currently active, the new text will be queued and displayed once the current text is finished.
+    /// </summary>
+    /// <param name="text">The text to be displayed by the Typer. May contain pauses in the form of '[duration]'.</param>
     public void PushText(string text)
     {
         GD.Print($"Pushing text to Typer: {text}");

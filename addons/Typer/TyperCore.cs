@@ -1,5 +1,4 @@
 #nullable enable
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -132,6 +131,19 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
 
             if (!Resource.LoopTypingSound)
                 TypingSoundPlayer?.Play();
+
+            if (CurrentLastCharIdx > 0)
+            {
+                char lastChar = CurrentLine[CurrentLastCharIdx - 1];
+
+                if (TryGetPunctuationPause(lastChar, out int blinkTimes))
+                {
+                    CurrentFinalCaretBlinkTimes = blinkTimes;
+                    CurrentFinalCaretBlinkTime = 0;
+                    state = StateEnum.Pause;
+                    timer = Resource.CaretBlinkTime;
+                }
+            }
         }
         else
         {
@@ -235,7 +247,7 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
                 tags.Add((match.Index, v));
         }
 
-        return [.. tags.OrderBy(tag => tag.Value)];
+        return [.. tags.OrderBy(tag => tag.Position)];
     }
 
     private string[] WrapText(string text, Font font, int fontSize)
@@ -295,5 +307,21 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
             if (pauses.Count > 0)
                 Pauses[i] = pauses;
         }
+    }
+
+    private bool TryGetPunctuationPause(char c, out int blinkTimes)
+    {
+        blinkTimes = c switch
+        {
+            '.' => Resource.PeriodPauseBlinkTimes,
+            '!' => Resource.ExclamationPauseBlinkTimes,
+            '?' => Resource.QuestionPauseBlinkTimes,
+            ',' => Resource.CommaPauseBlinkTimes,
+            ';' => Resource.SemicolonPauseBlinkTimes,
+            ':' => Resource.ColonPauseBlinkTimes,
+            _ => 0
+        };
+
+        return blinkTimes > 0;
     }
 }

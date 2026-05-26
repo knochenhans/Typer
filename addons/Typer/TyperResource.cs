@@ -25,6 +25,14 @@ public partial class TyperResource : Resource
     [ExportGroup("Timing")]
     [Export] public float TypingSpeed = 0.05f;
     [Export] public float StartDelay = 1.0f;
-    [Export] public float PreFadeoutTime = 1.0f;
+    [Export] public float PreFadeoutTime = 2.0f;
     [Export] public float FadeoutTime = 1.0f;
+
+    [ExportSubgroup("Punctuation")]
+    [Export] public int PeriodPauseBlinkTimes = 2;
+    [Export] public int ExclamationPauseBlinkTimes = 2;
+    [Export] public int QuestionPauseBlinkTimes = 2;
+    [Export] public int CommaPauseBlinkTimes = 0;
+    [Export] public int SemicolonPauseBlinkTimes = 1;
+    [Export] public int ColonPauseBlinkTimes = 1;
 }
