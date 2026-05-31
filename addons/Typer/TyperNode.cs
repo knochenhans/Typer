@@ -36,25 +36,12 @@ public partial class TyperNode : Control
         EmitSignal(SignalName.SetupFinished);
     }
 
-    public override void _ExitTree()
-    {
-        TyperCore?.Stop();
-    }
+    public override void _ExitTree() => TyperCore?.Stop();
+    public override void _Process(double delta) => TyperCore?.Update(delta);
 
-    public override void _Process(double delta)
-    {
-        TyperCore?.Update(delta);
-    }
+    private void Redraw() => QueueRedraw();
 
-    private void Redraw()
-    {
-        QueueRedraw();
-    }
-
-    public override Vector2 _GetMinimumSize()
-    {
-        return CalculateGetMinimumSize();
-    }
+    public override Vector2 _GetMinimumSize() => CalculateGetMinimumSize();
 
     public override void _Draw()
     {
@@ -88,10 +75,7 @@ public partial class TyperNode : Control
     #endregion
 
     #region [Lifecycle]
-    public void Start()
-    {
-        TyperCore.Start();
-    }
+    public void Start() => TyperCore.Start();
 
     public void Stop()
     {
@@ -99,10 +83,7 @@ public partial class TyperNode : Control
         EmitSignal(SignalName.Stopped);
     }
 
-    public void Reset()
-    {
-        QueueRedraw();
-    }
+    public void Reset() => QueueRedraw();
     #endregion
 
     #region [Public]
@@ -143,10 +124,7 @@ public partial class TyperNode : Control
     }
 
     public async Task Wait(float seconds) => await ToSignal(GetTree().CreateTimer(seconds), "timeout");
-    public void ClearText()
-    {
-        TyperCore?.ClearText();
-    }
+    public void ClearText() => TyperCore?.ClearText();
     #endregion
 
     #region [Events]
