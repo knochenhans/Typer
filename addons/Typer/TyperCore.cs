@@ -181,6 +181,13 @@ public partial class TyperCore(TyperResource resource, Control target, AudioStre
 
     private void UpdateFadeout(double delta)
     {
+        if (Resource.FadeoutTime == 0)
+        {
+            state = StateEnum.Finished;
+            EmitSignal(SignalName.Finished);
+            return;
+        }
+
         fadeElapsed += delta;
 
         float t = Mathf.Clamp((float)(fadeElapsed / Resource.FadeoutTime), 0f, 1f);
